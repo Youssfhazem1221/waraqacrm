@@ -2,7 +2,7 @@
 // Waraqa CRM — Operational Constants & Configurations
 // ============================================================
 
-export const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby-CHANGE_ME/exec';
+export const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynYVPM62OXO7dkeh5on3uSRgbZOAJOqJtWac0EXt9tbCK-rpfLOw1F8zmsY0rZeogE/exec';
 export const CURRENCY = 'EGP';
 export const SUPPORT_WA = '201069237525';
 export const SLA_HOURS = 24;
