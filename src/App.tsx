@@ -142,11 +142,11 @@ export default function App() {
     const q = searchQuery.toLowerCase().trim();
     return orders.filter(
       (o) =>
-        o['Order ID'].toLowerCase().includes(q) ||
-        o['Customer name'].toLowerCase().includes(q) ||
-        o['Phone (WhatsApp)'].includes(q) ||
-        o['Governorate/City'].toLowerCase().includes(q) ||
-        o['Items summary'].toLowerCase().includes(q)
+        String(o['Order ID'] || '').toLowerCase().includes(q) ||
+        String(o['Customer name'] || '').toLowerCase().includes(q) ||
+        String(o['Phone (WhatsApp)'] || '').includes(q) ||
+        String(o['Governorate/City'] || '').toLowerCase().includes(q) ||
+        String(o['Items summary'] || '').toLowerCase().includes(q)
     );
   }, [orders, searchQuery]);
 
@@ -155,11 +155,11 @@ export default function App() {
     const q = searchQuery.toLowerCase().trim();
     return products.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.nameAr.includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        p.size.toLowerCase().includes(q) ||
-        p.paperType.toLowerCase().includes(q)
+        String(p.name || '').toLowerCase().includes(q) ||
+        String(p.nameAr || '').includes(q) ||
+        String(p.sku || '').toLowerCase().includes(q) ||
+        String(p.size || '').toLowerCase().includes(q) ||
+        String(p.paperType || '').toLowerCase().includes(q)
     );
   }, [products, searchQuery]);
 
