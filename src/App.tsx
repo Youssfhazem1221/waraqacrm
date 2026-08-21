@@ -30,9 +30,19 @@ import ProductEditorModal from '@/components/inventory/ProductEditorModal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import WaraqaLogo from '@/components/ui/WaraqaLogo';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import ToastContainer, { type ToastMessage } from '@/components/ui/Toast';
 import { Lock, Plus, RefreshCw, ShoppingBag, Package, Sparkles } from 'lucide-react';
 
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+}
+
+function AppContent() {
   const [token, setTokenState] = useState<string>(getStoredToken());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(getStoredToken()));
   const [authPassword, setAuthPassword] = useState('');
@@ -48,6 +58,18 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLive, setIsLive] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Toast Notifications
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = useCallback((type: 'success' | 'error' | 'info', title: string, message?: string) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev.slice(-3), { id, type, title, message }]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   // Modal States
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
@@ -71,7 +93,7 @@ export default function App() {
         setCustomers(cRes.customers);
       }
     } catch (err) {
-      console.error('Error loading CRM data:', err);
+      console.warn('[Waraqa CRM] Error loading CRM data:', err);
     } finally {
       setIsSyncing(false);
     }
@@ -88,16 +110,19 @@ export default function App() {
       setAuthError('Please enter your secret admin token');
       return;
     }
-    setStoredToken(authPassword.trim());
-    setTokenState(authPassword.trim());
+    const cleanToken = authPassword.trim();
+    setStoredToken(cleanToken);
+    setTokenState(cleanToken);
     setIsAuthenticated(true);
     setAuthError('');
+    addToast('success', 'Admin Command Hub Unlocked', 'Syncing operational data with backend.');
   };
 
   const handleLock = () => {
     clearStoredToken();
     setTokenState('');
     setIsAuthenticated(false);
+    addToast('info', 'Command Hub Locked');
   };
 
   // Actions
@@ -105,6 +130,7 @@ export default function App() {
     setProducts((prev) =>
       prev.map((p) => (p.sku === sku ? { ...p, stock: newStock, status: status as Product['status'] } : p))
     );
+    addToast('success', `Stock updated: ${sku}`, `New inventory: ${newStock} units (${status})`);
     await updateStockQuick(sku, newStock, status, token);
   };
 
@@ -116,6 +142,7 @@ export default function App() {
       }
       return [product, ...prev];
     });
+    addToast('success', `SKU Saved: ${product.sku}`, `${product.name} updated.`);
     await saveProductToBackend(product, token);
   };
 
@@ -124,8 +151,9 @@ export default function App() {
       prev.map((o) => (o['Order ID'] === orderId ? { ...o, Status: status } : o))
     );
     if (detailOrder && detailOrder['Order ID'] === orderId) {
-      setDetailOrder({ ...detailOrder, Status: status });
+      setDetailOrder((prev) => (prev ? { ...prev, Status: status } : null));
     }
+    addToast('success', `Order #${orderId} Updated`, `Fulfillment stage changed to ${status}.`);
     await updateOrderStatusInBackend(orderId, status, token);
   };
 
@@ -133,6 +161,7 @@ export default function App() {
     setOrders((prev) =>
       prev.map((o) => (o['Order ID'] === orderId ? { ...o, 'WhatsApp sent?': sent ? 'Yes' : 'No' } : o))
     );
+    addToast('success', `WhatsApp Outreach Logged`, `Order #${orderId} marked as sent in records.`);
     await logWhatsAppSent(orderId, sent, token);
   };
 
@@ -171,6 +200,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#FAF5EE] flex items-center justify-center p-4">
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         <div className="w-full max-w-md bg-white border border-[#E6D9C7] rounded-3xl p-8 shadow-sm space-y-6 text-center animate-fadeIn">
           <WaraqaLogo size={64} className="mx-auto rounded-2xl shadow-md" />
 
@@ -212,6 +242,9 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-[#FAF5EE]">
+      {/* Toast System */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
       {/* Left Sidebar */}
       <Sidebar
         activeTab={activeTab}

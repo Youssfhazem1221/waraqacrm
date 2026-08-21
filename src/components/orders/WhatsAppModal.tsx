@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { MessageSquare, Send, Check, Copy, ExternalLink, Phone } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { MessageSquare, Send, Check, Copy, ExternalLink, Phone, Globe } from 'lucide-react';
 import type { Order } from '@/types';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
-import { generateWhatsAppMessage } from '@/lib/constants';
+import { generateWhatsAppMessage, formatInternationalPhone } from '@/lib/constants';
 
 interface WhatsAppModalProps {
   isOpen: boolean;
@@ -25,44 +25,63 @@ export default function WhatsAppModal({
 
   if (!order) return null;
 
-  const cleanPhone = (order['Phone (WhatsApp)'] || '').replace(/\D/g, '');
-  const internationalPhone = cleanPhone.startsWith('20')
-    ? cleanPhone
-    : cleanPhone.startsWith('0')
-    ? '2' + cleanPhone
-    : '20' + cleanPhone;
+  const orderId = String(order['Order ID'] || 'WRQ-1000');
+  const customerName = String(order['Customer name'] || 'Customer');
+  const rawPhone = String(order['Phone (WhatsApp)'] || '');
+  const internationalPhone = formatInternationalPhone(rawPhone);
 
-  const generated = generateWhatsAppMessage(templateType, {
-    orderId: order['Order ID'],
-    customerName: order['Customer name'] || 'Customer',
-    itemsSummary: order['Items summary'] || '',
-    total: Number(order['Total (EGP)']) || 0,
-    governorate: order['Governorate/City'] || 'Cairo',
-    address: order.Address || '',
-  });
+  const generated = useMemo(() => {
+    return generateWhatsAppMessage(templateType, {
+      orderId,
+      customerName,
+      itemsSummary: String(order['Items summary'] || ''),
+      total: Number(order['Total (EGP)']) || 0,
+      governorate: String(order['Governorate/City'] || 'Cairo'),
+      address: String(order.Address || ''),
+    });
+  }, [templateType, orderId, customerName, order]);
 
   const activeMessage = customText || generated;
-  const waUrl = `https://wa.me/${internationalPhone}?text=${encodeURIComponent(activeMessage)}`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(activeMessage);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      navigator.clipboard.writeText(activeMessage);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.warn('Clipboard copy fallback', e);
+    }
   };
 
-  const handleLaunchWhatsApp = async () => {
-    window.open(waUrl, '_blank');
+  const handleLaunchWhatsApp = async (mode: 'app' | 'web') => {
+    const textToSend = activeMessage;
+    const targetUrl = mode === 'web'
+      ? `https://web.whatsapp.com/send?phone=${internationalPhone}&text=${encodeURIComponent(textToSend)}`
+      : `https://wa.me/${internationalPhone}?text=${encodeURIComponent(textToSend)}`;
+
+    try {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      console.warn('window.open blocked', e);
+    }
+
     setIsLogging(true);
-    await onLogWhatsApp(order['Order ID'], true);
-    setIsLogging(false);
+    try {
+      await onLogWhatsApp(orderId, true);
+    } catch (err) {
+      console.warn('Error logging WhatsApp status:', err);
+    } finally {
+      setIsLogging(false);
+      onClose();
+    }
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`WhatsApp Outreach · ${order['Order ID']}`}
-      subtitle={`Customer: ${order['Customer name']} (${order['Phone (WhatsApp)']})`}
+      title={`WhatsApp Outreach · #${orderId}`}
+      subtitle={`Customer: ${customerName} (${rawPhone})`}
       maxWidth="lg"
     >
       <div className="space-y-5">
@@ -73,13 +92,14 @@ export default function WhatsAppModal({
           </label>
           <div className="grid grid-cols-3 gap-2">
             <button
+              type="button"
               onClick={() => {
                 setTemplateType('verify');
                 setCustomText('');
               }}
               className={`p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left ${
                 templateType === 'verify'
-                  ? 'bg-[#4C2224] text-white border-[#4C2224] shadow-xs'
+                  ? 'bg-[#4C2224] text-white border-[#4C2224] shadow-xs ring-2 ring-[#4C2224]/30'
                   : 'bg-white text-[#6B5D50] border-[#E6D9C7] hover:border-[#4C2224]'
               }`}
             >
@@ -88,13 +108,14 @@ export default function WhatsAppModal({
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 setTemplateType('dispatched');
                 setCustomText('');
               }}
               className={`p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left ${
                 templateType === 'dispatched'
-                  ? 'bg-[#4C2224] text-white border-[#4C2224] shadow-xs'
+                  ? 'bg-[#4C2224] text-white border-[#4C2224] shadow-xs ring-2 ring-[#4C2224]/30'
                   : 'bg-white text-[#6B5D50] border-[#E6D9C7] hover:border-[#4C2224]'
               }`}
             >
@@ -103,13 +124,14 @@ export default function WhatsAppModal({
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 setTemplateType('feedback');
                 setCustomText('');
               }}
               className={`p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left ${
                 templateType === 'feedback'
-                  ? 'bg-[#4C2224] text-white border-[#4C2224] shadow-xs'
+                  ? 'bg-[#4C2224] text-white border-[#4C2224] shadow-xs ring-2 ring-[#4C2224]/30'
                   : 'bg-white text-[#6B5D50] border-[#E6D9C7] hover:border-[#4C2224]'
               }`}
             >
@@ -126,11 +148,12 @@ export default function WhatsAppModal({
               Message Preview &amp; Editor
             </label>
             <button
+              type="button"
               onClick={handleCopy}
               className="text-xs text-[#4C2224] hover:underline flex items-center gap-1 font-medium cursor-pointer"
             >
               {copied ? <Check size={12} className="text-[#4A6B3A]" /> : <Copy size={12} />}
-              <span>{copied ? 'Copied!' : 'Copy Text'}</span>
+              <span>{copied ? 'Copied to Clipboard!' : 'Copy Text'}</span>
             </button>
           </div>
           <textarea
@@ -143,10 +166,11 @@ export default function WhatsAppModal({
         </div>
 
         {/* Recipient Details snapshot */}
-        <div className="bg-[#FAF5EE] border border-[#E6D9C7] rounded-xl p-3.5 flex items-center justify-between text-xs">
+        <div className="bg-[#FAF5EE] border border-[#E6D9C7] rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
           <div className="flex items-center gap-2">
             <Phone size={14} className="text-[#8A9A7B]" />
             <span className="font-semibold text-[#241C1B] font-mono">+{internationalPhone}</span>
+            <span className="text-[10px] text-[#6B5D50]">({customerName})</span>
           </div>
           <div className="text-[#6B5D50]">
             WhatsApp logged in Sheet: <strong className={order['WhatsApp sent?'] === 'Yes' ? 'text-[#4A6B3A]' : 'text-[#B8862B]'}>{order['WhatsApp sent?'] || 'No'}</strong>
@@ -154,20 +178,35 @@ export default function WhatsAppModal({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Button variant="outline" size="md" onClick={onClose}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          <Button variant="outline" size="md" onClick={onClose} type="button">
             <span>Cancel</span>
           </Button>
 
-          <Button
-            variant="success"
-            size="md"
-            onClick={handleLaunchWhatsApp}
-            isLoading={isLogging}
-            icon={<ExternalLink size={16} />}
-          >
-            <span>Launch WhatsApp &amp; Mark Sent</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="md"
+              type="button"
+              onClick={() => handleLaunchWhatsApp('web')}
+              isLoading={isLogging}
+              icon={<Globe size={15} />}
+              title="Open WhatsApp Web in Browser"
+            >
+              <span>WhatsApp Web</span>
+            </Button>
+
+            <Button
+              variant="success"
+              size="md"
+              type="button"
+              onClick={() => handleLaunchWhatsApp('app')}
+              isLoading={isLogging}
+              icon={<ExternalLink size={16} />}
+            >
+              <span>Launch App &amp; Mark Sent</span>
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>

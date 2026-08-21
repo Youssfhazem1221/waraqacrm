@@ -13,7 +13,7 @@ import type { Order, OrderStatus } from '@/types';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { ORDER_STATUSES, CURRENCY } from '@/lib/constants';
+import { ORDER_STATUSES, CURRENCY, formatInternationalPhone } from '@/lib/constants';
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -32,7 +32,11 @@ export default function OrderDetailModal({
 }: OrderDetailModalProps) {
   if (!order) return null;
 
-  const currentStatus = order.Status || 'Pending';
+  const currentStatus = (order.Status || 'Pending') as OrderStatus;
+  const orderId = String(order['Order ID'] || 'WRQ-1000');
+  const customerName = String(order['Customer name'] || 'Customer');
+  const phone = String(order['Phone (WhatsApp)'] || '');
+  const formattedPhone = formatInternationalPhone(phone);
 
   const badgeVariants: Record<string, 'amber' | 'blue' | 'purple' | 'emerald' | 'rose' | 'gray'> = {
     Pending: 'amber',
@@ -43,11 +47,22 @@ export default function OrderDetailModal({
     Cancelled: 'rose',
   };
 
+  const handleStatusClick = async (status: OrderStatus) => {
+    await onStatusChange(orderId, status);
+  };
+
+  const handleLaunchWhatsApp = () => {
+    onClose();
+    setTimeout(() => {
+      onOpenWhatsApp(order);
+    }, 50);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Order ${order['Order ID']}`}
+      title={`Order #${orderId}`}
       subtitle={`Placed on ${order.Timestamp || 'Recent'}`}
       maxWidth="xl"
     >
@@ -69,14 +84,16 @@ export default function OrderDetailModal({
               return (
                 <button
                   key={st.key}
-                  onClick={() => onStatusChange(order['Order ID'], st.key as OrderStatus)}
-                  className={`px-2 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center ${
+                  type="button"
+                  onClick={() => handleStatusClick(st.key as OrderStatus)}
+                  className={`px-2 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center ${
                     isSelected
-                      ? 'bg-[#4C2224] text-white shadow-xs'
-                      : 'bg-[#FAF5EE] text-[#6B5D50] hover:bg-[#E6D9C7]/50'
+                      ? 'bg-[#4C2224] text-white shadow-xs font-bold ring-2 ring-[#4C2224]/30'
+                      : 'bg-[#FAF5EE] text-[#6B5D50] hover:bg-[#E6D9C7]/50 hover:text-[#241C1B]'
                   }`}
                 >
-                  {st.label.split(' ')[0]}
+                  <div>{st.label.split(' ')[0]}</div>
+                  <div className="text-[9px] opacity-75 font-normal truncate mt-0.5">{st.key}</div>
                 </button>
               );
             })}
@@ -90,11 +107,11 @@ export default function OrderDetailModal({
               Customer Info
             </span>
             <div className="font-bold text-[#241C1B] text-base font-serif">
-              {order['Customer name']}
+              {customerName}
             </div>
             <div className="flex items-center gap-2 text-xs text-[#6B5D50]">
               <Phone size={14} className="text-[#8A9A7B]" />
-              <span className="font-mono">{order['Phone (WhatsApp)']}</span>
+              <span className="font-mono">{phone}</span>
             </div>
             {order.Email && (
               <div className="flex items-center gap-2 text-xs text-[#6B5D50] truncate">
@@ -111,8 +128,8 @@ export default function OrderDetailModal({
             <div className="flex items-start gap-2 text-xs text-[#241C1B]">
               <MapPin size={16} className="text-[#A3492F] mt-0.5 shrink-0" />
               <div>
-                <strong className="block text-[#4C2224]">{order['Governorate/City']}</strong>
-                <span className="text-[#6B5D50] mt-0.5 block leading-relaxed">{order.Address}</span>
+                <strong className="block text-[#4C2224]">{order['Governorate/City'] || 'Cairo'}</strong>
+                <span className="text-[#6B5D50] mt-0.5 block leading-relaxed">{order.Address || 'No address provided'}</span>
               </div>
             </div>
             {order.Notes && (
@@ -129,17 +146,17 @@ export default function OrderDetailModal({
             Items Ordered
           </span>
           <div className="p-3 bg-[#FAF5EE] rounded-xl text-xs sm:text-sm text-[#241C1B] leading-relaxed">
-            {order['Items summary']}
+            {order['Items summary'] || 'Sketchbook item'}
           </div>
 
           <div className="border-t border-[#E6D9C7] pt-3 space-y-1.5 text-xs text-[#6B5D50]">
             <div className="flex justify-between">
               <span>Items Total Qty:</span>
-              <span className="font-bold text-[#241C1B]">{order['Total qty']} units</span>
+              <span className="font-bold text-[#241C1B]">{order['Total qty'] || 1} units</span>
             </div>
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>{order['Subtotal (EGP)']} {CURRENCY}</span>
+              <span>{order['Subtotal (EGP)'] || 0} {CURRENCY}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping Fee:</span>
@@ -147,7 +164,7 @@ export default function OrderDetailModal({
             </div>
             <div className="flex justify-between pt-2 border-t border-[#E6D9C7] font-serif text-base font-bold text-[#4C2224]">
               <span>Total Cash on Delivery:</span>
-              <span>{order['Total (EGP)']} {CURRENCY}</span>
+              <span>{order['Total (EGP)'] || 0} {CURRENCY}</span>
             </div>
           </div>
         </div>
@@ -157,10 +174,7 @@ export default function OrderDetailModal({
           <Button
             variant="primary"
             size="md"
-            onClick={() => {
-              onClose();
-              onOpenWhatsApp(order);
-            }}
+            onClick={handleLaunchWhatsApp}
             icon={<MessageSquare size={16} className="text-[#8A9A7B]" />}
           >
             <span>Open WhatsApp Outreach</span>

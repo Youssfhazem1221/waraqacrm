@@ -166,7 +166,7 @@ export async function fetchProductsData(): Promise<{ products: Product[]; isLive
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const res = await fetch(`${apiUrl}?what=products`, { cache: 'no-store', signal: controller.signal });
     clearTimeout(timeoutId);
 
@@ -192,7 +192,7 @@ export async function fetchOrdersData(token: string): Promise<{ orders: Order[];
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const res = await fetch(`${apiUrl}?what=orders&token=${encodeURIComponent(token)}`, {
       cache: 'no-store',
       signal: controller.signal,
@@ -221,7 +221,7 @@ export async function fetchCustomersData(token: string): Promise<{ customers: Cu
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const res = await fetch(`${apiUrl}?what=customers&token=${encodeURIComponent(token)}`, {
       cache: 'no-store',
       signal: controller.signal,
@@ -257,6 +257,8 @@ export async function saveProductToBackend(product: Product, token: string): Pro
   if (!apiUrl || !token) return true;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -265,11 +267,14 @@ export async function saveProductToBackend(product: Product, token: string): Pro
         token,
         product,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+    if (!res.ok) return false;
     const data = await res.json();
     return data.ok === true;
   } catch (err) {
-    console.error('[Waraqa CRM] Failed to save product to Google Sheet:', err);
+    console.warn('[Waraqa CRM] Note: Failed to sync product to Google Sheet (local cache saved):', err);
     return false;
   }
 }
@@ -283,6 +288,8 @@ export async function updateStockQuick(sku: string, stock: number, status: strin
   if (!apiUrl || !token) return true;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -293,11 +300,14 @@ export async function updateStockQuick(sku: string, stock: number, status: strin
         stock,
         status,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+    if (!res.ok) return false;
     const data = await res.json();
     return data.ok === true;
   } catch (err) {
-    console.error('[Waraqa CRM] Failed to update stock to Google Sheet:', err);
+    console.warn('[Waraqa CRM] Note: Failed to sync stock to Google Sheet (local cache saved):', err);
     return false;
   }
 }
@@ -311,6 +321,8 @@ export async function updateOrderStatusInBackend(orderId: string, status: OrderS
   if (!apiUrl || !token) return true;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -320,11 +332,14 @@ export async function updateOrderStatusInBackend(orderId: string, status: OrderS
         orderId,
         status,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+    if (!res.ok) return false;
     const data = await res.json();
     return data.ok === true;
   } catch (err) {
-    console.error('[Waraqa CRM] Failed to update order status to Google Sheet:', err);
+    console.warn('[Waraqa CRM] Note: Failed to sync order status to Google Sheet (local cache saved):', err);
     return false;
   }
 }
@@ -338,6 +353,8 @@ export async function logWhatsAppSent(orderId: string, sent: boolean, token: str
   if (!apiUrl || !token) return true;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -347,11 +364,14 @@ export async function logWhatsAppSent(orderId: string, sent: boolean, token: str
         orderId,
         sent,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+    if (!res.ok) return false;
     const data = await res.json();
     return data.ok === true;
   } catch (err) {
-    console.error('[Waraqa CRM] Failed to log WhatsApp to Google Sheet:', err);
+    console.warn('[Waraqa CRM] Note: Failed to sync WhatsApp log to Google Sheet (local cache saved):', err);
     return false;
   }
 }
