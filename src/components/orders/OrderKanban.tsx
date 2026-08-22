@@ -64,7 +64,7 @@ export default function OrderKanban({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-start">
-      {ORDER_STATUSES.filter(s => s.key !== 'Cancelled').map((column) => {
+      {ORDER_STATUSES.filter(s => s.key !== 'Cancelled' && s.key !== 'Returned').map((column) => {
         const colOrders = orders.filter((o) => (o.Status || 'Pending') === column.key);
         const colTotal = colOrders.reduce((sum, o) => sum + (Number(o['Total (EGP)']) || 0), 0);
 

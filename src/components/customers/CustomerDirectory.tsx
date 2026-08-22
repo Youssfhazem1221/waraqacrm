@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { Users, Phone, Mail, MapPin, MessageSquare, Star, ShoppingBag, Copy, Check } from 'lucide-react';
 import type { Customer } from '@/types';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { CURRENCY, formatInternationalPhone } from '@/lib/constants';
 
 interface CustomerDirectoryProps {
   customers: Customer[];
   searchQuery: string;
+  onUpdateTag: (phone: string, tag: Customer['Customer Tag']) => Promise<void>;
 }
+
+const TAG_OPTIONS: Customer['Customer Tag'][] = ['New', 'Active', 'Repeat', 'VIP', 'Risk'];
 
 export default function CustomerDirectory({
   customers,
   searchQuery,
+  onUpdateTag,
 }: CustomerDirectoryProps) {
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('All');
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
@@ -37,12 +40,12 @@ export default function CustomerDirectory({
     return matchesSearch && matchesTag;
   });
 
-  const tagVariants: Record<string, 'emerald' | 'amber' | 'purple' | 'blue' | 'rose' | 'gray'> = {
-    VIP: 'amber',
-    Repeat: 'purple',
-    Active: 'blue',
-    New: 'emerald',
-    Risk: 'rose',
+  const tagColorClasses: Record<string, string> = {
+    VIP: 'bg-[#B8862B]/15 text-[#734E09] border-[#B8862B]/30',
+    Repeat: 'bg-purple-500/15 text-purple-800 border-purple-500/30',
+    Active: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+    New: 'bg-[#4A6B3A]/15 text-[#28451B] border-[#4A6B3A]/30',
+    Risk: 'bg-[#A3492F]/15 text-[#6D2714] border-[#A3492F]/30',
   };
 
   const handleCopyPhone = (phone: string) => {
@@ -161,9 +164,17 @@ export default function CustomerDirectory({
 
                       {/* Segment Tag */}
                       <td className="px-6 py-4">
-                        <Badge variant={tagVariants[c['Customer Tag']] || 'gray'} dot size="sm">
-                          {c['Customer Tag'] || 'New'}
-                        </Badge>
+                        <select
+                          value={c['Customer Tag'] || 'New'}
+                          onChange={(e) => onUpdateTag(rawPhone, e.target.value as Customer['Customer Tag'])}
+                          className={`rounded-full border text-xs font-semibold px-2.5 py-1 cursor-pointer focus:outline-none ${tagColorClasses[c['Customer Tag']] || 'bg-gray-200/80 text-gray-700 border-gray-300'}`}
+                        >
+                          {TAG_OPTIONS.map((tag) => (
+                            <option key={tag} value={tag}>
+                              {tag}
+                            </option>
+                          ))}
+                        </select>
                       </td>
 
                       {/* Direct WhatsApp button */}

@@ -45,6 +45,7 @@ export default function OrderDetailModal({
     Shipped: 'purple',
     Delivered: 'emerald',
     Cancelled: 'rose',
+    Returned: 'rose',
   };
 
   const handleStatusClick = async (status: OrderStatus) => {
@@ -78,7 +79,7 @@ export default function OrderDetailModal({
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5 pt-1">
             {ORDER_STATUSES.map((st) => {
               const isSelected = currentStatus === st.key;
               return (

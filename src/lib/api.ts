@@ -279,6 +279,36 @@ export async function saveProductToBackend(product: Product, token: string): Pro
   }
 }
 
+export async function deleteProductFromBackend(sku: string, token: string): Promise<boolean> {
+  const current = getLocalProducts();
+  saveLocalProducts(current.filter(p => p.sku !== sku));
+
+  const apiUrl = getStoredApiUrl();
+  if (!apiUrl || !token) return true;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'deleteProduct',
+        token,
+        sku,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.ok === true;
+  } catch (err) {
+    console.warn('[Waraqa CRM] Note: Failed to delete product from Google Sheet (removed from local cache):', err);
+    return false;
+  }
+}
+
 export async function updateStockQuick(sku: string, stock: number, status: string, token: string): Promise<boolean> {
   const current = getLocalProducts();
   const updated = current.map(p => p.sku === sku ? { ...p, stock, status: status as Product['status'] } : p);
@@ -372,6 +402,40 @@ export async function logWhatsAppSent(orderId: string, sent: boolean, token: str
     return data.ok === true;
   } catch (err) {
     console.warn('[Waraqa CRM] Note: Failed to sync WhatsApp log to Google Sheet (local cache saved):', err);
+    return false;
+  }
+}
+
+export async function updateCustomerInBackend(phone: string, updates: { tag?: string; notes?: string }, token: string): Promise<boolean> {
+  const current = getLocalCustomers();
+  const updated = current.map(c => c['Phone (WhatsApp)'] === phone
+    ? { ...c, ...(updates.tag !== undefined ? { 'Customer Tag': updates.tag as Customer['Customer Tag'] } : {}), ...(updates.notes !== undefined ? { Notes: updates.notes } : {}) }
+    : c);
+  saveLocalCustomers(updated);
+
+  const apiUrl = getStoredApiUrl();
+  if (!apiUrl || !token) return true;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'updateCustomer',
+        token,
+        phone,
+        ...updates,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.ok === true;
+  } catch (err) {
+    console.warn('[Waraqa CRM] Note: Failed to sync customer update to Google Sheet (local cache saved):', err);
     return false;
   }
 }

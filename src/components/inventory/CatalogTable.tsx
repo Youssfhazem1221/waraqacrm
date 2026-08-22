@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Sparkles, AlertCircle, Plus, Minus } from 'lucide-react';
+import { Edit2, Sparkles, AlertCircle, Plus, Minus, Trash2 } from 'lucide-react';
 import type { Product } from '@/types';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -9,12 +9,14 @@ interface CatalogTableProps {
   products: Product[];
   onEditProduct: (p: Product) => void;
   onQuickStockChange: (sku: string, newStock: number, status: string) => Promise<void>;
+  onDeleteProduct: (sku: string) => Promise<void>;
 }
 
 export default function CatalogTable({
   products,
   onEditProduct,
   onQuickStockChange,
+  onDeleteProduct,
 }: CatalogTableProps) {
   const statusBadgeVariants: Record<string, 'emerald' | 'rose' | 'gray'> = {
     Active: 'emerald',
@@ -140,14 +142,28 @@ export default function CatalogTable({
 
                   {/* Action */}
                   <td className="px-6 py-4 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditProduct(p)}
-                      icon={<Edit2 size={13} />}
-                    >
-                      <span>Edit SKU</span>
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEditProduct(p)}
+                        icon={<Edit2 size={13} />}
+                      >
+                        <span>Edit SKU</span>
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          if (window.confirm(`Delete ${p.name} (${p.sku})? This removes it from Google Sheets and the storefront immediately.`)) {
+                            onDeleteProduct(p.sku);
+                          }
+                        }}
+                        icon={<Trash2 size={13} />}
+                      >
+                        <span>Delete</span>
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );

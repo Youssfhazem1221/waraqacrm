@@ -3,11 +3,13 @@ import type { Product, Order, Customer, OrderStatus, ActiveTab } from '@/types';
 import { 
   fetchProductsData, 
   fetchOrdersData, 
-  fetchCustomersData, 
-  saveProductToBackend, 
-  updateStockQuick, 
-  updateOrderStatusInBackend, 
-  logWhatsAppSent, 
+  fetchCustomersData,
+  saveProductToBackend,
+  deleteProductFromBackend,
+  updateStockQuick,
+  updateOrderStatusInBackend,
+  logWhatsAppSent,
+  updateCustomerInBackend,
   computeAnalytics,
   getStoredToken,
   setStoredToken,
@@ -144,6 +146,20 @@ function AppContent() {
     });
     addToast('success', `SKU Saved: ${product.sku}`, `${product.name} updated.`);
     await saveProductToBackend(product, token);
+  };
+
+  const handleDeleteProduct = async (sku: string) => {
+    setProducts((prev) => prev.filter((p) => p.sku !== sku));
+    addToast('info', `SKU Deleted: ${sku}`, 'Removed from Google Sheets and the storefront.');
+    await deleteProductFromBackend(sku, token);
+  };
+
+  const handleUpdateCustomerTag = async (phone: string, tag: Customer['Customer Tag']) => {
+    setCustomers((prev) =>
+      prev.map((c) => (c['Phone (WhatsApp)'] === phone ? { ...c, 'Customer Tag': tag } : c))
+    );
+    addToast('success', 'Customer tag updated', `Segment set to ${tag}.`);
+    await updateCustomerInBackend(phone, { tag }, token);
   };
 
   const handleOrderStatusChange = async (orderId: string, status: OrderStatus) => {
@@ -395,6 +411,7 @@ function AppContent() {
                   setIsProductModalOpen(true);
                 }}
                 onQuickStockChange={handleQuickStock}
+                onDeleteProduct={handleDeleteProduct}
               />
             </div>
           )}
@@ -414,6 +431,7 @@ function AppContent() {
               <CustomerDirectory
                 customers={customers}
                 searchQuery={searchQuery}
+                onUpdateTag={handleUpdateCustomerTag}
               />
             </div>
           )}

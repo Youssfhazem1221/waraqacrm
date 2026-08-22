@@ -2,7 +2,7 @@
 // Waraqa CRM — Operational Constants & Configurations
 // ============================================================
 
-export const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynYVPM62OXO7dkeh5on3uSRgbZOAJOqJtWac0EXt9tbCK-rpfLOw1F8zmsY0rZeogE/exec';
+export const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz7sJWx7ntjg4E1J6mIb6yYsaD1l3XlSOdEKc9HGc4pdxKqqvunQeVJrCu_F0YwZyZ5/exec';
 export const CURRENCY = 'EGP';
 export const SUPPORT_WA = '201069237525';
 export const SLA_HOURS = 24;
@@ -14,6 +14,7 @@ export const ORDER_STATUSES: { key: string; label: string; color: string; desc: 
   { key: 'Shipped', label: 'Out with Courier', color: 'indigo', desc: 'Dispatched with local delivery partner' },
   { key: 'Delivered', label: 'Delivered & Paid', color: 'emerald', desc: 'Cash collected successfully' },
   { key: 'Cancelled', label: 'Cancelled / RTO', color: 'rose', desc: 'Customer cancelled or unreachable' },
+  { key: 'Returned', label: 'Returned', color: 'rose', desc: 'Delivered then returned by the customer' },
 ];
 
 export const GOVERNORATES = [
