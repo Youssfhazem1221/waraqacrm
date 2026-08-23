@@ -24,6 +24,7 @@ import OrderKanban from '@/components/orders/OrderKanban';
 import CatalogTable from '@/components/inventory/CatalogTable';
 import CustomerDirectory from '@/components/customers/CustomerDirectory';
 import UnitEconomics from '@/components/analytics/UnitEconomics';
+import PostHogDashboard from '@/components/analytics/PostHogDashboard';
 import SyncSettings from '@/components/settings/SyncSettings';
 
 import OrderDetailModal from '@/components/orders/OrderDetailModal';
@@ -440,6 +441,9 @@ function AppContent() {
           {activeTab === 'analytics' && (
             <div className="space-y-6 animate-fadeIn">
               <UnitEconomics metrics={metrics} />
+              <div className="mt-8">
+                <PostHogDashboard />
+              </div>
             </div>
           )}
 
