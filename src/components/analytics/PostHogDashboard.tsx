@@ -4,8 +4,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
 export default function PostHogDashboard() {
-  const [dashboardUrl, setDashboardUrl] = useState(() => localStorage.getItem('waraqa_posthog_url') || '');
-  const [isEditing, setIsEditing] = useState(!dashboardUrl);
+  const [dashboardUrl, setDashboardUrl] = useState(() => localStorage.getItem('waraqa_posthog_url') || 'https://us.posthog.com/shared/76H7uwjlB05HCQVHJzbIFWAINb8pbA');
+  const [isEditing, setIsEditing] = useState(false);
   const [tempUrl, setTempUrl] = useState(dashboardUrl);
 
   const handleSave = () => {
