@@ -10,6 +10,22 @@ interface ProductEditorModalProps {
   onClose: () => void;
   product: Product | null;
   onSave: (product: Product) => Promise<void>;
+  /** SKUs already in the catalog, so a new one cannot collide with them. */
+  existingSkus?: string[];
+}
+
+/**
+ * Read a number field without turning an empty box into 0.
+ *
+ * `Number(e.target.value)` maps '' to 0, so clearing the price to retype it set
+ * the price to zero — and submitting at that moment published a free product.
+ * Empty now means "unchanged/absent" and is held as an empty string until the
+ * operator types a value.
+ */
+function numberFieldValue(raw: string, fallback: number): number {
+  if (raw.trim() === '') return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 export default function ProductEditorModal({
@@ -17,6 +33,7 @@ export default function ProductEditorModal({
   onClose,
   product,
   onSave,
+  existingSkus = [],
 }: ProductEditorModalProps) {
   const [formData, setFormData] = useState<Product>({
     sku: '',
@@ -37,6 +54,8 @@ export default function ProductEditorModal({
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [skuError, setSkuError] = useState('');
+  const [priceError, setPriceError] = useState('');
 
   useEffect(() => {
     if (product) {
@@ -64,10 +83,36 @@ export default function ProductEditorModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const sku = formData.sku.trim();
+    setSkuError('');
+    setPriceError('');
+
+    if (!sku) {
+      setSkuError('A SKU is required.');
+      return;
+    }
+
+    // Creating a SKU that already exists routes through the same save path as
+    // an edit, so it would quietly overwrite the existing product.
+    if (!product && existingSkus.some((s) => s.trim().toLowerCase() === sku.toLowerCase())) {
+      setSkuError(`${sku} already exists. Edit that product instead, or pick another SKU.`);
+      return;
+    }
+
+    if (!Number.isFinite(formData.price) || formData.price <= 0) {
+      setPriceError('Set a price above 0 before publishing.');
+      return;
+    }
+
     setIsSaving(true);
-    await onSave(formData);
-    setIsSaving(false);
-    onClose();
+    try {
+      await onSave({ ...formData, sku });
+      onClose();
+    } finally {
+      // Leaves the form usable if the save threw, instead of a stuck spinner.
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -88,6 +133,7 @@ export default function ProductEditorModal({
             placeholder="e.g. WRQ-A5-MM-25"
             required
             disabled={Boolean(product)}
+            error={skuError}
           />
 
           <div className="space-y-1.5">
@@ -136,8 +182,11 @@ export default function ProductEditorModal({
             type="number"
             min="0"
             value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, price: numberFieldValue(e.target.value, 0) })
+            }
             required
+            error={priceError}
           />
 
           <Input
@@ -145,7 +194,9 @@ export default function ProductEditorModal({
             type="number"
             min="0"
             value={formData.compareAt}
-            onChange={(e) => setFormData({ ...formData, compareAt: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, compareAt: numberFieldValue(e.target.value, 0) })
+            }
             hint="Original price if on discount"
           />
 
@@ -154,7 +205,9 @@ export default function ProductEditorModal({
             type="number"
             min="0"
             value={formData.stock}
-            onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, stock: numberFieldValue(e.target.value, 0) })
+            }
             required
           />
         </div>
@@ -184,7 +237,9 @@ export default function ProductEditorModal({
             min="50"
             max="600"
             value={formData.gsm}
-            onChange={(e) => setFormData({ ...formData, gsm: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, gsm: numberFieldValue(e.target.value, formData.gsm) })
+            }
             placeholder="320"
           />
 
@@ -194,7 +249,9 @@ export default function ProductEditorModal({
             min="1"
             max="200"
             value={formData.sheets}
-            onChange={(e) => setFormData({ ...formData, sheets: Number(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, sheets: numberFieldValue(e.target.value, formData.sheets) })
+            }
             placeholder="25"
           />
         </div>

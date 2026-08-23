@@ -69,6 +69,8 @@ export interface AnalyticsMetrics {
   deliveredOrders: number;
   cancelledOrders: number;
   aov: number;
+  /** Shipping fees actually collected on delivered orders (EGP). */
+  shippingCollected: number;
   totalCustomers: number;
   repeatCustomerRate: number;
   totalStockUnits: number;

@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, DollarSign, Truck, MapPin, AlertCircle, Sparkles, Award } from 'lucide-react';
 import type { AnalyticsMetrics } from '@/types';
 import Card from '@/components/ui/Card';
-import { CURRENCY } from '@/lib/constants';
+import { CURRENCY, COURIER_COST_PER_ORDER } from '@/lib/constants';
 
 interface UnitEconomicsProps {
   metrics: AnalyticsMetrics;
@@ -11,9 +11,22 @@ interface UnitEconomicsProps {
 export default function UnitEconomics({ metrics }: UnitEconomicsProps) {
   // Estimated workshop economics model from market deep-dive
   const estimatedCogsPercent = 0.38; // ~38% materials & binding costs
-  const estimatedNetMargin = Math.round(metrics.deliveredRevenue * (1 - estimatedCogsPercent));
-  const estimatedCourierLossPerOrder = 25; // Gap between flat 50 EGP charged vs 75-85 EGP avg courier fee
-  const shippingReconciliation = metrics.deliveredOrders * estimatedCourierLossPerOrder;
+  const grossContribution = Math.round(metrics.deliveredRevenue * (1 - estimatedCogsPercent));
+  // Courier subsidy = what the couriers cost us minus what we actually
+  // collected. This used to be `deliveredOrders * 25`, a figure derived from a
+  // flat 50 EGP fee that no longer exists (it is now 60 in Cairo/Giza, 75
+  // elsewhere, 0 on free-shipping Cairo orders), so it overstated the gap and
+  // could not react to the zone mix at all.
+  const courierCost = metrics.deliveredOrders * COURIER_COST_PER_ORDER;
+  const shippingReconciliation = Math.max(0, Math.round(courierCost - metrics.shippingCollected));
+  const courierLossPerOrder =
+    metrics.deliveredOrders > 0
+      ? Math.round(shippingReconciliation / metrics.deliveredOrders)
+      : 0;
+
+  // The subsidy was computed and then thrown away, so the margin headline
+  // ignored the single largest cost after materials. Net it out.
+  const estimatedNetMargin = grossContribution - shippingReconciliation;
 
   return (
     <div className="space-y-6">
@@ -81,12 +94,26 @@ export default function UnitEconomics({ metrics }: UnitEconomicsProps) {
               ~{estimatedNetMargin.toLocaleString()} <span className="text-sm font-sans font-normal text-[#6B5D50]">{CURRENCY}</span>
             </div>
             <p className="text-xs text-[#6B5D50] mt-1">
-              Estimated ~62% gross profit margin on delivered goods
+              After ~38% materials COGS and courier subsidy
             </p>
           </div>
-          <div className="border-t border-[#E6D9C7] pt-3 text-xs text-[#6B5D50] flex justify-between">
-            <span>Estimated Materials COGS:</span>
-            <strong className="text-[#241C1B]">~{(metrics.deliveredRevenue * estimatedCogsPercent).toFixed(0)} {CURRENCY}</strong>
+          <div className="border-t border-[#E6D9C7] pt-3 text-xs text-[#6B5D50] space-y-1.5">
+            <div className="flex justify-between">
+              <span>Estimated Materials COGS:</span>
+              <strong className="text-[#241C1B]">~{(metrics.deliveredRevenue * estimatedCogsPercent).toFixed(0)} {CURRENCY}</strong>
+            </div>
+            <div className="flex justify-between">
+              <span>Courier subsidy (net of fees collected):</span>
+              <strong className="text-[#A3492F]">
+                −{shippingReconciliation.toLocaleString()} {CURRENCY}
+              </strong>
+            </div>
+            <div className="flex justify-between text-[11px] text-[#6B5D50]/80">
+              <span>
+                Collected {metrics.shippingCollected.toLocaleString()} {CURRENCY} of shipping
+              </span>
+              <span>~{courierLossPerOrder} {CURRENCY}/order</span>
+            </div>
           </div>
         </Card>
 

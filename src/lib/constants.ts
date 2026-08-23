@@ -7,6 +7,18 @@ export const CURRENCY = 'EGP';
 export const SUPPORT_WA = '201069237525';
 export const SLA_HOURS = 24;
 
+/**
+ * What the courier actually charges us per delivered order (EGP, assumption).
+ * The storefront collects 60 EGP in the Cairo zone, 75 elsewhere, and 0 on
+ * free-shipping Cairo orders — so the subsidy has to be reconciled against the
+ * shipping genuinely collected rather than a fixed per-order gap.
+ */
+export const COURIER_COST_PER_ORDER = 80;
+
+/** Business-day delivery window quoted to customers. */
+export const DELIVERY_DAYS_MIN = 3;
+export const DELIVERY_DAYS_MAX = 7;
+
 export const ORDER_STATUSES: { key: string; label: string; color: string; desc: string }[] = [
   { key: 'Pending', label: 'Pending SLA', color: 'amber', desc: 'Needs WhatsApp/Phone verification within 24h' },
   { key: 'Confirmed', label: 'Confirmed', color: 'blue', desc: 'Customer verified address & total due' },
