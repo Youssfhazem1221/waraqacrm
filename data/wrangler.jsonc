@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "waraqa-data",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // No public URL at all: the store and the CRM reach this Worker only through
+  // service bindings (PublicApi / AdminApi entrypoints).
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [{ "name": "STORE", "class_name": "SheetStore" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SheetStore"] }],
+  "vars": {
+    // The NEW Sheet. Set after you create it (see README).
+    "SHEET_ID": "REPLACE_WITH_NEW_SHEET_ID"
+  },
+  // Secrets (wrangler secret put ...; locally in .dev.vars):
+  //   GOOGLE_SA_EMAIL  service account email
+  //   GOOGLE_SA_KEY    service account private key (PEM)
+  //   MAILER_URL       slim Apps Script /exec URL that sends order emails
+  //   MAILER_SECRET    shared secret checked by that script
+  "observability": { "enabled": true }
+}

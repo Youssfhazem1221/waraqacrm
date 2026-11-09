@@ -1,0 +1,8 @@
+# Copy to .dev.vars (git-ignored) for `npm run dev`.
+# The service account's email and private key, from the JSON key file Google
+# gives you. Keep the key on one line with literal \n between lines.
+GOOGLE_SA_EMAIL=waraqa-data@your-project.iam.gserviceaccount.com
+GOOGLE_SA_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+# Optional locally: without these no emails are sent.
+MAILER_URL=
+MAILER_SECRET=
