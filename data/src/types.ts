@@ -139,6 +139,8 @@ export interface Snapshot {
 export interface Catalog {
   products: PublicProduct[];
   zones: Omit<ShippingZone, 'courierCost'>[];
+  /** Cairo date (yyyy-mm-dd) the customer-facing rates last changed; '' if never recorded. */
+  shippingUpdatedAt: string;
   supportWhatsapp: string;
   readAt: number;
 }

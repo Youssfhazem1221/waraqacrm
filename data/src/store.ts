@@ -84,6 +84,9 @@ const READ_TTL_MS = 15_000;
 /** The store may be served a copy this old while a fresh one loads in the background. */
 const STALE_OK_MS = 10 * 60_000;
 
+/** Settings row holding the date the customer-facing shipping rates last changed. */
+const SHIPPING_UPDATED_KEY = 'shipping_updated_at';
+
 const ORDER_LIMIT_PER_10MIN = 30;
 const ORDER_LIMIT_PER_PHONE_HOUR = 5;
 const SUBSCRIBE_LIMIT_PER_10MIN = 60;
@@ -196,6 +199,7 @@ export class SheetStore extends DurableObject<Env> {
     return {
       products: t.products.rows.filter((p) => p.status !== 'Hidden').map(({ cost: _cost, ...p }) => p),
       zones: t.zones.rows.map(({ courierCost: _c, ...z }) => z),
+      shippingUpdatedAt: t.settings.rows.find((r) => r.key === SHIPPING_UPDATED_KEY)?.value ?? '',
       supportWhatsapp: settings.supportWhatsapp,
       readAt: t.readAt,
     };
@@ -623,6 +627,25 @@ export class SheetStore extends DurableObject<Env> {
       ]);
       const after = clean.map((z) => `${z.zone}: ${z.fee}/${z.freeOver}/${z.courierCost}`).join('; ');
       await this.client.append(tabRange(AUDIT.name), [this.auditRow(t, 'shipping.save', 'zones', `${before} ⇒ ${after}`)]);
+
+      // The store's shipping policy shows this as its "last updated" date. Only
+      // what customers see counts: a courier-cost edit is private.
+      const publicView = (zs: ShippingZone[]) => JSON.stringify(zs.map((z) => [z.zone, [...z.governorates].sort(), z.fee, z.freeOver]));
+      if (publicView(t.zones.rows) !== publicView(clean)) {
+        const today = nowCairo().slice(0, 10);
+        const i = t.settings.rows.findIndex((r) => r.key === SHIPPING_UPDATED_KEY);
+        if (i >= 0) {
+          await this.client.batchUpdate(this.cells(t.settings as Table<unknown>, t.settings.rowNumbers[i], { value: today }));
+        } else {
+          await this.client.append(tabRange(SETTINGS.name), [
+            buildRow(t.settings as Table<unknown>, {
+              key: SHIPPING_UPDATED_KEY,
+              value: today,
+              about: 'Set automatically when shipping rates change; shown as the shipping policy date.',
+            }),
+          ]);
+        }
+      }
       return ok();
     });
   }
