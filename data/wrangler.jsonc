@@ -13,11 +13,13 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SheetStore"] }],
   "vars": {
-    // The NEW Sheet. Set after you create it (see README).
-    "SHEET_ID": "REPLACE_WITH_NEW_SHEET_ID"
+    // The NEW Sheet ("Waraqa Data", in youssf.hazem1221@gmail.com's Drive).
+    "SHEET_ID": "1Oecnsh8XIoh3mTrpsUBldM4FO3k6fyvsCZuMhDThm28",
+    // Service account (Google Cloud project waraqa-514220). Shared on the new
+    // Sheet as Editor and on the old one as Viewer. Not a secret.
+    "GOOGLE_SA_EMAIL": "waraqa-data@waraqa-514220.iam.gserviceaccount.com"
   },
   // Secrets (wrangler secret put ...; locally in .dev.vars):
-  //   GOOGLE_SA_EMAIL  service account email
   //   GOOGLE_SA_KEY    service account private key (PEM)
   //   MAILER_URL       slim Apps Script /exec URL that sends order emails
   //   MAILER_SECRET    shared secret checked by that script

@@ -1,10 +1,5 @@
-import path from 'node:path';
 import type { NextConfig } from 'next';
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
-
-// The CRM shares types and pure business rules with the data Worker
-// (../data/src/types.ts, rules.ts), so the bundler root is the repo root.
-const repoRoot = path.join(__dirname, '..');
 
 const CSP = [
   "default-src 'self'",
@@ -21,8 +16,6 @@ const CSP = [
 ].join('; ');
 
 const nextConfig: NextConfig = {
-  turbopack: { root: repoRoot },
-  outputFileTracingRoot: repoRoot,
   poweredByHeader: false,
   images: { unoptimized: true },
   async headers() {

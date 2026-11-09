@@ -152,20 +152,35 @@ export class SheetStore extends DurableObject<Env> {
   private load(fresh = false): Promise<Tables> {
     if (!fresh && this.cache && Date.now() - this.cache.readAt < READ_TTL_MS) return Promise.resolve(this.cache);
     if (this.loading) return this.loading;
-    this.loading = this.client
-      .batchGet(READ_TABS.map(([, def]) => tabRange(def.name)))
-      .then((ranges) => {
-        const t = { readAt: Date.now() } as Tables;
-        READ_TABS.forEach(([key, def], i) => {
-          (t as unknown as Record<string, unknown>)[key] = parseTable(def, ranges[i]);
-        });
-        this.cache = t;
-        return t;
+    this.loading = this.readAll()
+      .catch(async (err) => {
+        // A tab was renamed or deleted by hand since the tab list was cached.
+        this.sheetIds = null;
+        if (!/Unable to parse range/i.test(String(err))) throw err;
+        return this.readAll();
       })
       .finally(() => {
         this.loading = null;
       });
     return this.loading;
+  }
+
+  /**
+   * Read every tab that exists; a missing one reads as empty. A brand-new
+   * Sheet has none of them until Setup runs, and Setup is a button in the CRM,
+   * which has to open on that blank Sheet first.
+   */
+  private async readAll(): Promise<Tables> {
+    if (!this.sheetIds) this.sheetIds = new Map((await this.client.tabs()).map((s) => [s.title, s.sheetId]));
+    const present = READ_TABS.filter(([, def]) => this.sheetIds!.has(def.name));
+    const ranges = present.length ? await this.client.batchGet(present.map(([, def]) => tabRange(def.name))) : [];
+    const t = { readAt: Date.now() } as Tables;
+    READ_TABS.forEach(([key, def]) => {
+      const i = present.findIndex(([k]) => k === key);
+      (t as unknown as Record<string, unknown>)[key] = parseTable(def, i >= 0 ? ranges[i] : []);
+    });
+    this.cache = t;
+    return t;
   }
 
   /** After a write: drop the copy and start re-reading so the next reader doesn't wait. */

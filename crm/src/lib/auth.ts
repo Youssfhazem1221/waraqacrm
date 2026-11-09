@@ -99,12 +99,15 @@ export async function requireSession() {
  * hand anything else to a client component or return it from a server action.
  */
 export function data(): DataApi {
-  const target = env().DATA;
-  return new Proxy(target, {
-    get(t, prop) {
-      const fn = (t as unknown as Record<string | symbol, unknown>)[prop];
-      if (typeof fn !== 'function') return fn;
-      return async (...args: unknown[]) => JSON.parse(JSON.stringify(await (fn as (...a: unknown[]) => unknown).apply(t, args)));
+  const target = env().DATA as unknown as Record<string, (...a: unknown[]) => Promise<unknown>>;
+  return new Proxy({} as DataApi, {
+    get(_, prop) {
+      // Not a thenable: `await data()` must not look for a remote "then".
+      if (typeof prop !== 'string' || prop === 'then') return undefined;
+      // Call the method on the binding itself. On a deployed service binding
+      // every property is a remote method, so `.apply`/`.call` on it would be
+      // sent to the data Worker as a method named "apply".
+      return async (...args: unknown[]) => JSON.parse(JSON.stringify(await target[prop](...args)));
     },
   });
 }

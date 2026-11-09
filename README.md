@@ -49,25 +49,20 @@ Columns are found by header name, so you can reorder them or add your own. Don't
 
 ## Set up (one time)
 
-**1. Google service account**
-1. [console.cloud.google.com](https://console.cloud.google.com) → create a project (e.g. `waraqa`) → enable the **Google Sheets API**.
-2. IAM & Admin → Service accounts → Create (`waraqa-data`) → Keys → Add key → JSON. Keep the file private: never commit it.
+**1. Google service account and Sheets** (done 2026-11-09)
+- Google Cloud project `waraqa-514220`, Sheets API enabled.
+- Service account `waraqa-data@waraqa-514220.iam.gserviceaccount.com` (in `data/wrangler.jsonc` → `GOOGLE_SA_EMAIL`).
+- New Sheet "Waraqa Data" (`SHEET_ID` in `data/wrangler.jsonc`), shared with the service account as **Editor**; the old Sheet shared with it as **Viewer** for the import.
+- Still to do by hand: IAM & Admin → Service accounts → `waraqa-data` → Keys → Add key → JSON. Keep the file private: never commit it.
 
-**2. New Sheet**
-1. In your Gmail Drive, create a blank Google Sheet named `Waraqa Data`.
-2. Share it with the service account's email as **Editor**.
-3. Share the **old** Sheet with the same email as **Viewer** (for the import).
-4. Put the new Sheet's ID (from its URL) in `data/wrangler.jsonc` → `SHEET_ID`.
-
-**3. Deploy the data Worker**
+**2. Deploy the data Worker**
 ```bash
 cd data && npm install
-npx wrangler secret put GOOGLE_SA_EMAIL
 npx wrangler secret put GOOGLE_SA_KEY      # paste the private_key value from the JSON file
 npm run deploy
 ```
 
-**4. Deploy the CRM**
+**3. Deploy the CRM**
 ```bash
 cd crm && npm install
 npx wrangler secret put CRM_PASSWORD
@@ -76,14 +71,14 @@ npm run deploy
 ```
 Open `crm.waraqa.art` → Settings → **Set up / repair tabs**, then **Import** with the old Sheet's URL. Then check prices, add product **costs**, and review the **Shipping** page.
 
-**5. Mailer** (order emails): follow the steps at the top of `mailer/Code.gs`, then:
+**4. Mailer** (order emails): follow the steps at the top of `mailer/Code.gs`, then:
 ```bash
 cd data
 npx wrangler secret put MAILER_URL
 npx wrangler secret put MAILER_SECRET
 ```
 
-**6. Switch the store** to the `data-worker-sync` branch of waraqa-store and deploy it. From then on, orders go to the new Sheet. Leave the old Apps Script deployment running for a day as a fallback, then archive it.
+**5. Switch the store** to the `data-worker-sync` branch of waraqa-store and deploy it. From then on, orders go to the new Sheet. Leave the old Apps Script deployment running for a day as a fallback, then archive it.
 
 ## Local development
 
