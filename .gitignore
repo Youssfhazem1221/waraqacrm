@@ -17,3 +17,5 @@ dist
 .DS_Store
 *.tsbuildinfo
 crm/src/shared/
+mailer/secret.gs
+mailer/.clasp.json

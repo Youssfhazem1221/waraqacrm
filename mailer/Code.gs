@@ -17,6 +17,15 @@
  * 4. Deploy ▸ New deployment ▸ Web app ▸ Execute as: Me ▸ Who has access: Anyone.
  *    Put the /exec URL in the Worker secret MAILER_URL.
  *    To update later: Deploy ▸ Manage deployments ▸ ✏ ▸ New version (keeps the URL).
+ *
+ * AS DEPLOYED (2026-11-10): project "Waraqa mailer", pushed with clasp from
+ * this folder (.clasp.json, git-ignored). The secret is in secret.gs, also
+ * git-ignored, which `clasp push` uploads with this file. Keep secret.gs when
+ * pushing again: a push replaces every file in the project, so pushing
+ * without it leaves the mailer refusing every order unless MAILER_SECRET is
+ * set as a Script Property. To update: npx @google/clasp login, then
+ * npx @google/clasp push, then npx @google/clasp update-deployment <id>
+ * (list ids with npx @google/clasp list-deployments), then clasp logout.
  */
 
 const OWNER_EMAIL = 'youssf.hazem1221@gmail.com';
@@ -35,7 +44,10 @@ function doPost(e){
   try { body = JSON.parse(e.postData.contents); }
   catch (err) { return json({ ok: false, error: 'bad json' }); }
 
-  var expected = PropertiesService.getScriptProperties().getProperty('MAILER_SECRET') || '';
+  // The script property wins; secret.gs (written by `npm run push` from the
+  // git-ignored MAILER_SECRET.local, never committed) is the fallback.
+  var expected = PropertiesService.getScriptProperties().getProperty('MAILER_SECRET')
+    || (typeof MAILER_SECRET_VALUE === 'string' ? MAILER_SECRET_VALUE : '');
   if (expected.length < 16 || !body || typeof body.secret !== 'string' || !safeEqual(body.secret, expected)) {
     return json({ ok: false, error: 'unauthorized' });
   }
