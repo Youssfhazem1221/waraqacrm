@@ -33,6 +33,7 @@ const STORE_NAME  = 'Waraqa';
 const REPLY_TO    = 'youssf.hazem1221@gmail.com';
 const CURRENCY    = 'EGP';
 const SUPPORT_WA  = '201069237525';
+const SLA_HOURS   = 24;  // hours to confirm a new order (named in the owner alert)
 const DELIVERY_DAYS_MIN = 3;
 const DELIVERY_DAYS_MAX = 7;
 /* Receipts stop when the daily quota (100/day on a free account) drops to

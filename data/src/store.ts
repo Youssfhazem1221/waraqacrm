@@ -441,7 +441,16 @@ export class SheetStore extends DurableObject<Env> {
           },
         }),
       });
-      if (!res.ok) console.warn('[mailer] HTTP', res.status);
+      if (!res.ok) {
+        console.warn('[mailer] HTTP', res.status, order.id);
+        return;
+      }
+      // The mailer answers 200 even when an email fails (it catches and logs),
+      // so read what it says. A failed alert went unnoticed this way once.
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; sent?: { owner?: boolean; receipt?: boolean } } | null;
+      if (!body?.ok) console.warn('[mailer] refused', order.id, body?.error);
+      else if (!body.sent?.owner) console.warn('[mailer] owner alert not sent', order.id);
+      else if (order.email && !body.sent?.receipt) console.warn('[mailer] receipt not sent', order.id);
     } catch (err) {
       console.warn('[mailer] failed', err);
     }
