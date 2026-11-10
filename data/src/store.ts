@@ -704,7 +704,12 @@ export class SheetStore extends DurableObject<Env> {
    * at the end.
    */
   async setup(): Promise<Result<{ log: string[] }>> {
-    return this.queueRun(async () => {
+    return this.queueRun(() => this.doSetup());
+  }
+
+  /** setup() without the queue, for callers already inside it (import). */
+  private async doSetup(): Promise<Result<{ log: string[] }>> {
+    {
       const log: string[] = [];
       let existing = await this.client.tabs();
       const missing = TABS.filter((d) => !existing.some((e) => e.title === d.name));
@@ -793,12 +798,29 @@ export class SheetStore extends DurableObject<Env> {
       this.invalidate();
       if (!log.length) log.push('Sheet already set up; nothing to change.');
       return ok({ log });
+    }
+  }
+
+  /**
+   * Copy products, orders, items, customers and newsletter from the old Sheet.
+   * Runs Setup first, so a Sheet whose tabs were never created (or lost one)
+   * still has somewhere to write; on a set-up Sheet that changes nothing.
+   */
+  async importFrom(oldSheetId: string): Promise<Result<{ log: string[] }>> {
+    return this.queueRun(async () => {
+      const prep = await this.doSetup();
+      const setupLog = prep.ok ? prep.log.filter((l) => !l.startsWith('Sheet already set up')) : [];
+      const t = await this.load(true);
+      try {
+        return await this.importInto(t, oldSheetId, setupLog);
+      } finally {
+        this.invalidate();
+      }
     });
   }
 
-  /** Copy products, orders, items, customers and newsletter from the old Sheet. */
-  async importFrom(oldSheetId: string): Promise<Result<{ log: string[] }>> {
-    return this.exclusive(async (t) => {
+  private async importInto(t: Tables, oldSheetId: string, setupLog: string[]): Promise<Result<{ log: string[] }>> {
+    {
       if (t.products.rows.length || t.orders.rows.length) {
         return fail('The new Sheet already has products or orders. Import only runs into an empty Sheet.');
       }
@@ -813,8 +835,8 @@ export class SheetStore extends DurableObject<Env> {
       await write(CUSTOMERS, t.customers as Table<unknown>, data.customers);
       await write(NEWSLETTER, t.newsletter as Table<unknown>, data.newsletter);
       await this.client.append(tabRange(AUDIT.name), [this.auditRow(t, 'import', oldSheetId, data.log.join(' | '))]);
-      return ok({ log: data.log });
-    });
+      return ok({ log: [...setupLog, ...data.log] });
+    }
   }
 
   /** Like exclusive() but without the pre-read (setup may run before tabs exist). */
