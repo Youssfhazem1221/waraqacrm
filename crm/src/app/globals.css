@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* Waraqa brand tokens, same as the store (BRAND_GUIDELINES.md). */
+@theme {
+  --color-maroon: #4C2224;
+  --color-kraft: #C0A286;
+  --color-cream: #F4ECE0;
+  --color-char: #241C1B;
+  --color-sage: #8A9A7B;
+  --color-terra: #C06A4B;
+  --color-esp: #201513;
+  --color-line: #E6D9C7;
+  --color-muted: #6B5D50;
+  --color-success: #4A6B3A;
+  --color-error: #A3492F;
+  --color-warning: #B8862B;
+
+  --font-sans: var(--font-readex), system-ui, sans-serif;
+
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+}
+
+html {
+  background: var(--color-cream);
+  color: var(--color-char);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-cream);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inputs that edit a number in a table cell: no spinners, right aligned. */
+.cell-input::-webkit-outer-spin-button,
+.cell-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cell-input {
+  -moz-appearance: textfield;
+  text-align: right;
+}
+
+/* Sideways-scrolling chip rows on phones, without a scrollbar under them. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

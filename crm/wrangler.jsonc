@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "waraqa-crm",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "waraqa-crm" },
+    // All data goes through the data Worker's admin entrypoint.
+    { "binding": "DATA", "service": "waraqa-data", "entrypoint": "AdminApi" }
+  ],
+  // 5 sign-in attempts per minute per IP.
+  "ratelimits": [{ "name": "LOGIN_LIMITER", "namespace_id": "4401", "simple": { "limit": 5, "period": 60 } }],
+  "routes": [{ "pattern": "crm.waraqa.art", "custom_domain": true }],
+  // One way in only: no *.workers.dev or preview URLs.
+  "workers_dev": false,
+  "preview_urls": false,
+  // Secrets: CRM_PASSWORD, SESSION_SECRET (locally in .dev.vars).
+  "observability": { "enabled": true }
+}

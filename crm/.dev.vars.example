@@ -1,0 +1,6 @@
+# Copy to .dev.vars (git-ignored) for `npm run dev`.
+# The password you sign in with (8+ characters; use a long one).
+CRM_PASSWORD=change-me-to-a-long-password
+# Random string, 32+ characters, used to sign the session cookie.
+# Generate: node -e "console.log(crypto.randomBytes(32).toString('base64url'))"
+SESSION_SECRET=

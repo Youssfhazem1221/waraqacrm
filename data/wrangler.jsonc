@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "waraqa-data",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // No public URL at all: the store and the CRM reach this Worker only through
+  // service bindings (PublicApi / AdminApi entrypoints).
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [{ "name": "STORE", "class_name": "SheetStore" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SheetStore"] }],
+  "vars": {
+    // The NEW Sheet ("Waraqa Data", in youssf.hazem1221@gmail.com's Drive).
+    "SHEET_ID": "1Oecnsh8XIoh3mTrpsUBldM4FO3k6fyvsCZuMhDThm28",
+    // Service account (Google Cloud project waraqa-514220). Shared on the new
+    // Sheet as Editor and on the old one as Viewer. Not a secret.
+    "GOOGLE_SA_EMAIL": "waraqa-data@waraqa-514220.iam.gserviceaccount.com"
+  },
+  // Secrets (wrangler secret put ...; locally in .dev.vars):
+  //   GOOGLE_SA_KEY    service account private key (PEM)
+  //   MAILER_URL       slim Apps Script /exec URL that sends order emails
+  //   MAILER_SECRET    shared secret checked by that script
+  "observability": { "enabled": true }
+}
