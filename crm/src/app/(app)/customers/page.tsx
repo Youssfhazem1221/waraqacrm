@@ -36,7 +36,7 @@ export default function CustomersPage() {
         sub={`${snap.customers.length} customers · ${repeat} ordered more than once. Tags New → Repeat → VIP update on their own; Risk and Blocked are yours.`}
         actions={
           <>
-            <Input placeholder="Search name, phone…" value={q} onChange={(e) => setQ(e.target.value)} className="w-56" />
+            <Input type="search" placeholder="Search name, phone…" value={q} onChange={(e) => setQ(e.target.value)} className="w-full sm:w-56" />
             <Select value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Tag">
               <option value="">All tags</option>
               {CUSTOMER_TAGS.map((t) => (
@@ -51,7 +51,31 @@ export default function CustomersPage() {
           </>
         }
       />
-      <div className="bg-white border border-line overflow-x-auto">
+      <div className="md:hidden space-y-2">
+        {list.map((c) => (
+          <button key={c.phone} onClick={() => setOpen(c.phone)} className="w-full text-left bg-white border border-line p-3 active:bg-cream/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium truncate">{c.name || c.phone}</div>
+                <div className="text-xs text-muted">
+                  {c.phone}
+                  {c.governorate && <> · {c.governorate}</>}
+                </div>
+              </div>
+              <Badge>{c.tag || 'New'}</Badge>
+            </div>
+            <div className="mt-2 flex justify-between text-sm">
+              <span className="text-muted">
+                {c.orders} order{c.orders === 1 ? '' : 's'}
+                {c.lastOrder && <> · last {c.lastOrder}</>}
+              </span>
+              <span className="tabular-nums font-medium">{money(c.spent)}</span>
+            </div>
+          </button>
+        ))}
+        {!list.length && <div className="p-8 text-center text-sm text-muted bg-white border border-line">No customers match.</div>}
+      </div>
+      <div className="hidden md:block bg-white border border-line overflow-x-auto">
         <table className="w-full text-sm min-w-[720px]">
           <thead className="text-xs uppercase text-muted border-b border-line bg-cream/50">
             <tr>
@@ -97,7 +121,12 @@ function CustomerDrawer({ phone, onClose }: { phone: string | null; onClose: () 
   useEffect(() => setNotes(c?.notes ?? ''), [c?.phone, c?.notes]);
   if (!c) return null;
   const orders = snap.orders.filter((o) => o.phone === c.phone).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const save = (patch: Partial<Customer>, msg: string) => run(updateCustomer(c.phone, patch), msg);
+  // Shows at once; the header says Saving… / Saved.
+  const save = (patch: Partial<Customer>) =>
+    run(updateCustomer(c.phone, patch), undefined, (s) => ({
+      ...s,
+      customers: s.customers.map((x) => (x.phone === c.phone ? { ...x, ...patch } : x)),
+    }));
   const first = c.name.split(/\s+/)[0] || '';
 
   return (
@@ -127,7 +156,7 @@ function CustomerDrawer({ phone, onClose }: { phone: string | null; onClose: () 
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={c.tag || 'New'} onChange={(e) => save({ tag: e.target.value }, `Tagged ${e.target.value}`)} aria-label="Tag">
+          <Select value={c.tag || 'New'} onChange={(e) => save({ tag: e.target.value })} aria-label="Tag">
             {CUSTOMER_TAGS.map((t) => (
               <option key={t}>{t}</option>
             ))}
@@ -147,7 +176,7 @@ function CustomerDrawer({ phone, onClose }: { phone: string | null; onClose: () 
           <div className="text-xs uppercase text-muted">Notes</div>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} dir="auto" className="w-full border border-line p-2 text-sm bg-white" />
           {notes !== c.notes && (
-            <Button variant="primary" onClick={() => save({ notes }, 'Notes saved')}>
+            <Button variant="primary" onClick={() => save({ notes })}>
               Save notes
             </Button>
           )}

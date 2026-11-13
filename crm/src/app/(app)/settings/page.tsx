@@ -25,7 +25,7 @@ export default function SettingsPage() {
       <PageHeader title="Settings" />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Business rules" actions={dirty && <Button variant="primary" onClick={() => run(saveSettings(s), 'Settings saved')}>Save</Button>}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Support WhatsApp" hint="International format, e.g. 2010…">
               <Input value={s.supportWhatsapp} onChange={(e) => setS({ ...s, supportWhatsapp: e.target.value })} />
             </Field>

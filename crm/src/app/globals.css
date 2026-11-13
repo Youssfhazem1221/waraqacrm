@@ -48,3 +48,11 @@ body {
   -moz-appearance: textfield;
   text-align: right;
 }
+
+/* Sideways-scrolling chip rows on phones, without a scrollbar under them. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

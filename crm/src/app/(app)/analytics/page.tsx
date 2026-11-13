@@ -62,7 +62,7 @@ export default function AnalyticsPage() {
 
       <div className="grid gap-4 lg:grid-cols-2 mt-4">
         <Card title="Best sellers">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 px-4"><table className="w-full text-sm min-w-[22rem]">
             <thead className="text-xs uppercase text-muted">
               <tr>
                 <th className="text-left pb-2">Product</th>
@@ -93,11 +93,11 @@ export default function AnalyticsPage() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </Card>
 
         <Card title="Where orders go">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 px-4"><table className="w-full text-sm min-w-[22rem]">
             <thead className="text-xs uppercase text-muted">
               <tr>
                 <th className="text-left pb-2">Governorate</th>
@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       </div>
     </>

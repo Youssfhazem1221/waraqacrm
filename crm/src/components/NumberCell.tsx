@@ -5,8 +5,7 @@ import { cn } from '@/lib/format';
 
 /**
  * A number you edit in place. Saves on Enter or when focus leaves; Escape
- * reverts. While saving it shows a dot; the value then comes back from the
- * Sheet, so what you see is what was stored.
+ * reverts.
  */
 export function NumberCell({
   value,
@@ -17,29 +16,25 @@ export function NumberCell({
   label,
 }: {
   value: number;
-  onSave: (n: number) => Promise<unknown>;
+  onSave: (n: number) => unknown;
   min?: number;
   step?: number;
   className?: string;
   label: string;
 }) {
   const [draft, setDraft] = useState(String(value));
-  const [saving, setSaving] = useState(false);
   useEffect(() => setDraft(String(value)), [value]);
 
-  const commit = async () => {
+  // The screen updates at once (optimistic save) and the field stays usable;
+  // the header shows Saving… / Saved, and a failed save puts the old value back.
+  const commit = () => {
     const n = Number(draft);
     if (draft.trim() === '' || !Number.isFinite(n) || n < min) {
       setDraft(String(value));
       return;
     }
     if (n === value) return;
-    setSaving(true);
-    try {
-      await onSave(n);
-    } finally {
-      setSaving(false);
-    }
+    void onSave(n);
   };
 
   return (
@@ -47,11 +42,11 @@ export function NumberCell({
       <input
         type="number"
         inputMode="decimal"
+        enterKeyHint="done"
         aria-label={label}
         min={min}
         step={step}
         value={draft}
-        disabled={saving}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
@@ -62,12 +57,11 @@ export function NumberCell({
           }
         }}
         className={cn(
-          'cell-input h-8 w-20 px-2 border bg-white text-sm tabular-nums focus:outline-none focus:border-maroon',
-          Number(draft) !== value ? 'border-warning' : 'border-transparent hover:border-line',
+          'cell-input h-11 md:h-8 w-24 md:w-20 px-2 border bg-white text-base md:text-sm tabular-nums focus:outline-none focus:border-maroon',
+          Number(draft) !== value ? 'border-warning' : 'border-line md:border-transparent md:hover:border-line',
           className,
         )}
       />
-      {saving && <span className="absolute -right-2 w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />}
     </span>
   );
 }
