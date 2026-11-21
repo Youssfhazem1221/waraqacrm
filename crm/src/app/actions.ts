@@ -121,6 +121,45 @@ export async function runSetup() {
   return guarded(() => data().setup());
 }
 
+// ---- Order notifications ----------------------------------------------------
+
+export async function pushConfig() {
+  await requireSession();
+  return data().pushConfig();
+}
+
+export async function pushDevices() {
+  await requireSession();
+  return data().pushDevices();
+}
+
+export async function addPushDevice(subscription: unknown, label: string) {
+  try {
+    await requireSession();
+    return await data().addPushDevice(subscription, label);
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function removePushDevice(idOrEndpoint: string) {
+  try {
+    await requireSession();
+    return await data().removePushDevice(idOrEndpoint);
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function testPush() {
+  try {
+    await requireSession();
+    return await data().testPush();
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export async function runImport(oldSheetIdOrUrl: string) {
   const id = String(oldSheetIdOrUrl).match(/[-\w]{25,}/)?.[0];
   if (!id) return failure<{ log: string[] }>(new Error('Paste the old Sheet URL or its ID.'));

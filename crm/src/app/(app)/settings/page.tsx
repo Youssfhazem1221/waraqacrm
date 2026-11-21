@@ -5,6 +5,7 @@ import type { AuditEntry, Settings } from '@data/types';
 import { useData } from '@/components/DataProvider';
 import { PageHeader } from '@/components/Shell';
 import { WaModeToggle, useWaMode } from '@/components/WhatsAppPanel';
+import { PushSettings } from '@/components/PushSettings';
 import { Button, Card, Field, Input } from '@/components/ui';
 import { loadAudit, logout, runImport, runSetup, saveSettings } from '@/app/actions';
 
@@ -24,6 +25,7 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Settings" />
       <div className="grid gap-4 lg:grid-cols-2">
+        <PushSettings />
         <Card title="Business rules" actions={dirty && <Button variant="primary" onClick={() => run(saveSettings(s), 'Settings saved')}>Save</Button>}>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Support WhatsApp" hint="International format, e.g. 2010…">

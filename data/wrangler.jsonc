@@ -17,11 +17,17 @@
     "SHEET_ID": "1Oecnsh8XIoh3mTrpsUBldM4FO3k6fyvsCZuMhDThm28",
     // Service account (Google Cloud project waraqa-514220). Shared on the new
     // Sheet as Editor and on the old one as Viewer. Not a secret.
-    "GOOGLE_SA_EMAIL": "waraqa-data@waraqa-514220.iam.gserviceaccount.com"
+    "GOOGLE_SA_EMAIL": "waraqa-data@waraqa-514220.iam.gserviceaccount.com",
+    // Order notifications (Web Push). The public key is not secret: every
+    // browser that subscribes needs it. Its private half is the secret
+    // VAPID_PRIVATE_KEY; replacing the pair means every device re-subscribes.
+    "VAPID_PUBLIC_KEY": "BKnHdEozLbN2X84gZ6slEOhFpA_GEoJ0dmXptlBrgluMb_6-AXD490_mm7ZrjJdoxjtVbxbkyfjMzxNHIJ51WKc",
+    "VAPID_SUBJECT": "mailto:youssf.hazem1221@gmail.com"
   },
   // Secrets (wrangler secret put ...; locally in .dev.vars):
   //   GOOGLE_SA_KEY    service account private key (PEM)
   //   MAILER_URL       slim Apps Script /exec URL that sends order emails
   //   MAILER_SECRET    shared secret checked by that script
+  //   VAPID_PRIVATE_KEY  private half of the Web Push key pair (order notifications)
   "observability": { "enabled": true }
 }

@@ -46,6 +46,8 @@ export function DataProvider({ initial, children }: { initial: Snapshot; childre
   const [syncing, setSyncing] = useState(false);
   const [pending, setPending] = useState(0);
   const pendingRef = useRef(0);
+  /** A save failed while others were in flight: re-read once they all finish. */
+  const resyncRef = useRef(false);
   const [savedAt, setSavedAt] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -101,20 +103,34 @@ export function DataProvider({ initial, children }: { initial: Snapshot; childre
           setSavedAt(Date.now());
           return result as never;
         }
-        if (!snapshot && optimistic) apply(before);
+        if (!snapshot && optimistic) undo(before);
         toast(result.conflict ? 'warn' : 'error', result.error);
         if (result.error.startsWith('Signed out')) window.location.href = '/login';
         return null;
       } catch (err) {
-        if (optimistic) apply(before);
+        if (optimistic) undo(before);
         toast('error', err instanceof Error ? `Not saved: ${err.message}` : 'Not saved. Check your connection and try again.');
         return null;
       } finally {
         pendingRef.current--;
         setPending(pendingRef.current);
+        if (pendingRef.current === 0 && resyncRef.current) {
+          resyncRef.current = false;
+          void refresh(true);
+        }
+      }
+
+      /**
+       * Put the screen back after a failed save. Only safe when nothing else
+       * is in flight: `before` predates any later edit, so with saves still
+       * pending, wait for them and re-read the Sheet instead.
+       */
+      function undo(before: Snapshot) {
+        if (pendingRef.current === 1) apply(before);
+        else resyncRef.current = true;
       }
     },
-    [apply, toast],
+    [apply, toast, refresh],
   );
 
   // New store orders and hand edits in the Sheet show up without a manual refresh.

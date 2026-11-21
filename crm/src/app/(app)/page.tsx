@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { isIOS, isStandalone, pushSupported } from '@/components/PushSettings';
 import { useData } from '@/components/DataProvider';
 import { PageHeader } from '@/components/Shell';
 import { OrderDrawer } from '@/components/OrderDrawer';
@@ -24,8 +25,50 @@ export default function TodayPage() {
   const lowStock = snap.products.filter((p) => p.status !== 'Hidden' && p.stock <= lowStockThreshold).sort((a, b) => a.stock - b.stock);
   const month = economics(snap.orders.filter((o) => inPeriod(o, '30d')), snap.items);
 
+  // A one-time nudge on devices that could get order notifications but don't yet.
+  const [nudge, setNudge] = useState<null | 'enable' | 'install'>(null);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('waraqa-crm:push-nudge') === 'no') return;
+    } catch {
+      return;
+    }
+    // iPhone Safari has no web push until the CRM is on the Home Screen.
+    if (isIOS() && !isStandalone()) return setNudge('install');
+    if (!pushSupported() || Notification.permission !== 'default') return;
+    navigator.serviceWorker.ready
+      .then((r) => r.pushManager.getSubscription())
+      .then((s) => setNudge(s ? null : 'enable'))
+      .catch(() => undefined);
+  }, []);
+
   return (
     <>
+      {nudge && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 bg-white border border-kraft p-3 text-sm">
+          <span className="flex-1 min-w-[12rem]">
+            {nudge === 'install'
+              ? '🔔 Add Waraqa to your Home Screen to get a notification when a new order comes in.'
+              : '🔔 Get a notification on this device when a new order comes in.'}
+          </span>
+          <Link href="/settings" className="h-10 px-3 inline-flex items-center bg-maroon text-cream">
+            {nudge === 'install' ? 'Show me how' : 'Turn on'}
+          </Link>
+          <button
+            className="h-10 px-2 text-muted underline"
+            onClick={() => {
+              setNudge(null);
+              try {
+                localStorage.setItem('waraqa-crm:push-nudge', 'no');
+              } catch {
+                // storage blocked
+              }
+            }}
+          >
+            Not now
+          </button>
+        </div>
+      )}
       <PageHeader title="Today" sub="What needs doing, newest store orders included (refreshes every 30 seconds)." />
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Stat label="To confirm" value={pending.length} sub={late.length ? `${late.length} past the ${slaHours}h target` : `within ${slaHours}h`} tone={late.length ? 'bad' : pending.length ? 'warn' : undefined} />

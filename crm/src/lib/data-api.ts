@@ -33,4 +33,17 @@ export interface DataApi {
   saveSettings(patch: Partial<Settings>): Promise<Result>;
   setup(): Promise<Result<{ log: string[] }>>;
   importFrom(oldSheetId: string): Promise<Result<{ log: string[] }>>;
+  pushConfig(): Promise<{ publicKey: string | null }>;
+  addPushDevice(subscription: unknown, label: string): Promise<Result<{ device: PushDevice }>>;
+  removePushDevice(idOrEndpoint: string): Promise<Result>;
+  pushDevices(): Promise<PushDevice[]>;
+  testPush(): Promise<Result<{ sent: number; failed: number; removed: number }>>;
+}
+
+/** A phone or computer that turned on order notifications. */
+export interface PushDevice {
+  id: string;
+  label: string;
+  addedAt: string;
+  lastOkAt?: string;
 }
