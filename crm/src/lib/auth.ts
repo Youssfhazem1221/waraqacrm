@@ -63,7 +63,7 @@ export async function startSession() {
   (await cookies()).set(SESSION_COOKIE, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     path: '/',
     maxAge: SESSION_DAYS * 86_400,
   });

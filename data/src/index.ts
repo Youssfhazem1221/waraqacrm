@@ -70,6 +70,21 @@ export class AdminApi extends WorkerEntrypoint<Env> {
   importFrom(oldSheetId: string) {
     return store(this.env).importFrom(oldSheetId);
   }
+  pushConfig() {
+    return store(this.env).pushConfig();
+  }
+  addPushDevice(subscription: unknown, label: string) {
+    return store(this.env).addPushDevice(subscription, label);
+  }
+  removePushDevice(idOrEndpoint: string) {
+    return store(this.env).removePushDevice(idOrEndpoint);
+  }
+  pushDevices() {
+    return store(this.env).pushDevices();
+  }
+  testPush() {
+    return store(this.env).testPush();
+  }
 }
 
 export default {

@@ -51,6 +51,7 @@ import {
   zoneFor,
 } from './rules';
 import { importFromOldSheet } from './import';
+import { addDevice, listDevices, pushReady, removeDevice, sendToAll, validSubscription, type Device, type PushEnv } from './push';
 import type {
   Catalog,
   Customer,
@@ -67,7 +68,7 @@ import type {
 } from './types';
 import { ORDER_STATUSES } from './types';
 
-export interface Env {
+export interface Env extends PushEnv {
   STORE: DurableObjectNamespace<SheetStore>;
   SHEET_ID: string;
   GOOGLE_SA_EMAIL: string;
@@ -173,7 +174,11 @@ export class SheetStore extends DurableObject<Env> {
   private async readAll(): Promise<Tables> {
     if (!this.sheetIds) this.sheetIds = new Map((await this.client.tabs()).map((s) => [s.title, s.sheetId]));
     const present = READ_TABS.filter(([, def]) => this.sheetIds!.has(def.name));
-    const ranges = present.length ? await this.client.batchGet(present.map(([, def]) => tabRange(def.name))) : [];
+    // The Audit Log only ever grows (every CRM edit adds a row) and nothing on
+    // this path reads its rows, so fetch just its header (for auditRow).
+    const ranges = present.length
+      ? await this.client.batchGet(present.map(([, def]) => (def === AUDIT ? `${tabRange(def.name)}!1:1` : tabRange(def.name))))
+      : [];
     const t = { readAt: Date.now() } as Tables;
     READ_TABS.forEach(([key, def]) => {
       const i = present.findIndex(([k]) => k === key);
@@ -234,9 +239,13 @@ export class SheetStore extends DurableObject<Env> {
     };
   }
 
+  /** Newest entries first. Read on demand: the hot path loads only the header. */
   async auditLog(limit = 200) {
-    const t = await this.load();
-    return t.audit.rows.slice(-limit).reverse();
+    const values = await this.client
+      .batchGet([tabRange(AUDIT.name)])
+      .then(([v]) => v)
+      .catch(() => []); // no Audit Log tab yet (Setup not run): nothing to show
+    return parseTable<{ at: string; action: string; target: string; details: string }>(AUDIT, values).rows.slice(-limit).reverse();
   }
 
   // ---- Write helpers ----------------------------------------------------
@@ -312,9 +321,6 @@ export class SheetStore extends DurableObject<Env> {
   // ---- Store: orders and newsletter --------------------------------------
 
   async createOrder(req: OrderRequest): Promise<OrderResult> {
-    if (!(await this.rateOk('order', ORDER_LIMIT_PER_10MIN, 600))) {
-      return fail('We are receiving a lot of orders right now. Please try again in a few minutes.');
-    }
     const raw = req?.customer ?? ({} as OrderRequest['customer']);
     const rawItems = Array.isArray(req?.items) ? req.items : [];
     if (!rawItems.length) return fail('Your cart is empty.');
@@ -334,6 +340,11 @@ export class SheetStore extends DurableObject<Env> {
     if (!gov || gov.length > FIELD_MAX.governorate) return fail('Please choose your governorate.');
     if (!address || address.length > FIELD_MAX.address) return fail('Please enter your address.');
     if (city.length > FIELD_MAX.city || notesIn.length > FIELD_MAX.notes) return fail('One of the fields is too long.');
+    // Counted only for orders that passed the checks above, so junk requests
+    // can't use up the shop-wide limit and lock real customers out.
+    if (!(await this.rateOk('order', ORDER_LIMIT_PER_10MIN, 600))) {
+      return fail('We are receiving a lot of orders right now. Please try again in a few minutes.');
+    }
     if (!(await this.rateOk(`phone:${phone}`, ORDER_LIMIT_PER_PHONE_HOUR, 3600))) {
       return fail('We already have several orders from this number. Please WhatsApp us to add to them.');
     }
@@ -407,6 +418,18 @@ export class SheetStore extends DurableObject<Env> {
       if (cust.append.length) await this.client.append(tabRange(CUSTOMERS.name), cust.append);
 
       this.ctx.waitUntil(this.sendOrderEmail(order, items));
+      // Phones and laptops that turned on order notifications in the CRM.
+      this.ctx.waitUntil(
+        sendToAll(this.ctx.storage, this.env, {
+          title: `New order ${order.id}`,
+          body: `${order.customerName} · ${order.governorate} · ${order.total} EGP
+${order.itemsSummary}`.slice(0, 240),
+          url: `/orders?open=${encodeURIComponent(order.id)}`,
+          tag: order.id,
+        }, nowCairo()).then((r) => {
+          if (r.failed) console.warn('[push] order', order.id, r);
+        }),
+      );
       return { ok: true as const, orderId, subtotal, shipping, total: order.total };
     });
   }
@@ -472,6 +495,38 @@ export class SheetStore extends DurableObject<Env> {
       ]);
       return ok({});
     });
+  }
+
+  // ---- CRM: order notifications on devices -------------------------------
+
+  pushConfig(): { publicKey: string | null } {
+    return { publicKey: pushReady(this.env) ? this.env.VAPID_PUBLIC_KEY! : null };
+  }
+
+  async addPushDevice(subscription: unknown, label: string): Promise<Result<{ device: Device }>> {
+    if (!pushReady(this.env)) return fail('Notifications are not set up on the server yet.');
+    if (!validSubscription(subscription)) return fail('That device sent an invalid subscription.');
+    const device = await addDevice(this.ctx.storage, subscription, label, nowCairo());
+    return ok({ device });
+  }
+
+  async removePushDevice(idOrEndpoint: string): Promise<Result> {
+    await removeDevice(this.ctx.storage, String(idOrEndpoint || ''));
+    return ok();
+  }
+
+  async pushDevices(): Promise<Device[]> {
+    return listDevices(this.ctx.storage);
+  }
+
+  async testPush(): Promise<Result<{ sent: number; failed: number; removed: number }>> {
+    if (!pushReady(this.env)) return fail('Notifications are not set up on the server yet.');
+    const r = await sendToAll(this.ctx.storage, this.env, { title: 'Waraqa CRM', body: 'Test notification: new orders will show up like this.', url: '/orders', tag: 'test' }, nowCairo());
+    if (!r.sent && !r.failed && !r.removed) return fail('No device has notifications turned on yet.');
+    if (!r.sent && r.failed) {
+      return fail(`Couldn’t deliver to ${r.failed} device${r.failed === 1 ? '' : 's'}. Turn notifications off and on again on that device.`);
+    }
+    return ok(r);
   }
 
   // ---- CRM: products ----------------------------------------------------

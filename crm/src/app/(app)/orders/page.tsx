@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Order, OrderStatus } from '@data/types';
 import { useData } from '@/components/DataProvider';
 import { PageHeader } from '@/components/Shell';
@@ -27,6 +27,17 @@ export default function OrdersPage() {
   const [open, setOpen] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<OrderStatus | null>(null);
   const [tab, setTab] = useState<OrderStatus>('Pending');
+
+  // Tapping an order notification lands on /orders?open=WRQ-…: open that order.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('open');
+    if (!id) return;
+    setOpen(id);
+    const o = snap.orders.find((x) => x.id === id);
+    if (o) setTab(o.status);
+    window.history.replaceState(null, '', '/orders');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
